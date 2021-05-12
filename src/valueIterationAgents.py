@@ -45,30 +45,22 @@ class ValueIterationAgent(ValueEstimationAgent):
 
         # Write value iteration code here
         "*** YOUR CODE HERE ***"
-        self.runValueIteration()
 
-    def runValueIteration(self):
-        # Write value iteration code here
-        # inpired by computeQValueFromValues and computeActionFromValues (written prior) below
-        # apply computeQValues and within there replace call to computeQValues with the body of that function
-        while self.iterations > 0:
-            temps = self.values.copy()#save original values in temporary 
-            states = self.mdp.getStates() #get all states
-            for aState in states: #for each state use mdp to get all possible actions
-                allActions = self.mdp.getPossibleActions(aState)
-                possibleVals = []
-                for action in allActions:#computeActionsFromValues do compute q-values from values
-                    endStates = self.mdp.getTransitionStatesAndProbs(aState, action)
+        for i in range(self.iterations, 0, -1):            
+            states = self.mdp.getStates()
+            temps = self.values.copy()
+            for state in states:
+                actions = self.mdp.getPossibleActions(state)
+                possible_values = []
+                for action in actions:
+                    final_states = self.mdp.getTransitionStatesAndProbs(state, action)
                     weighted = 0
-                    for s in endStates: # for each end state calculate weigted average/q value
-                        nextState = s[0] #get next state p 
-                        prob = s[1] #get probability
-                        reward = self.mdp.getReward(aState, action, nextState)
-                        weighted += (prob * (reward + (self.discount * temps[nextState]))) 
-                    possibleVals.append(weighted)
-                if len(possibleVals) != 0:
-                    self.values[aState] = max(possibleVals)
-            self.iterations -= 1 #decrement until eventually iterations <= 0
+                    for next_state, prob in final_states: 
+                        reward = self.mdp.getReward(state, action, next_state)
+                        weighted += (reward + (self.discount * temps[next_state]) * prob)
+                    possible_values.append(weighted)
+                if possible_values:
+                    self.values[state] = max(possible_values)
          
 
 
@@ -85,13 +77,11 @@ class ValueIterationAgent(ValueEstimationAgent):
           value function stored in self.values.
         """
         "*** YOUR CODE HERE ***"
-        endStates = self.mdp.getTransitionStatesAndProbs(state, action)
+        final_states = self.mdp.getTransitionStatesAndProbs(state, action)
         weighted = 0
-        for s in endStates:
-            nextState = s[0]
-            prob = s[1]
-            reward = self.mdp.getReward(state, action, nextState)
-            weighted += (prob* (reward + (self.discount * self.values[nextState])))
+        for next_state, prob in final_states:           
+            reward = self.mdp.getReward(state, action, next_state)
+            weighted += (prob* (reward + (self.discount * self.values[next_state])))
 
         return weighted
 
@@ -105,18 +95,19 @@ class ValueIterationAgent(ValueEstimationAgent):
           terminal state, you should return None.
         """
         "*** YOUR CODE HERE ***"
-        if self.mdp.isTerminal(state): #make sure game isn't over
+        if self.mdp.isTerminal(state): 
             return None
-        allActions = self.mdp.getPossibleActions(state)#get all actions
-        endAction = ""
-        maxSum = float("-inf") #placeholder val
-        for action in allActions:
-            weighted = self.computeQValueFromValues(state, action)#get wieghted average
-            if (maxSum == float("-inf") and action == "") or weighted >= maxSum: #not yet assigned or bigger than current max
-                endAction = action
-                maxSum = weighted
+        final_action = ""
+        max_sum = float("-inf") 
 
-        return endAction
+        actions = self.mdp.getPossibleActions(state)
+        for action in actions:
+            weighted = self.computeQValueFromValues(state, action)
+            if (max_sum == float("-inf") and not action) or max_sum <= weighted: 
+                final_action = action
+                max_sum = weighted
+
+        return final_action
 
     def getPolicy(self, state):
         return self.computeActionFromValues(state)
